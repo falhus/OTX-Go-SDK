@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/google/go-querystring/query"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"reflect"
+
+	"github.com/google/go-querystring/query"
 )
 
 const (
@@ -60,6 +61,8 @@ type ListOptions struct {
 
 	// For paginated result sets, the number of results to include per page.
 	PerPage int `url:"limit,omitempty"`
+
+	ModifiedSince string `url:"modified_since,omitempty"`
 }
 
 // addOptions adds the parameters in opt as URL query parameters to s.  opt
@@ -89,6 +92,7 @@ func (c *OTXPulseDetailService) Get(id_string string) (PulseDetail, Response, er
 
 	req, _ := http.NewRequest(get, fmt.Sprintf("%s/%s/%s/", defaultBaseURL, pulseDetailURLPath, id_string), nil)
 	req.Header.Set("X-OTX-API-KEY", fmt.Sprintf("%s", os.Getenv("X_OTX_API_KEY")))
+	fmt.Printf("Requesting %s\n", req.URL)
 
 	response, _ := client.Do(req)
 	resp := Response{Response: response}
@@ -107,7 +111,7 @@ func (c *OTXPulseDetailService) Get(id_string string) (PulseDetail, Response, er
 
 func (c *OTXThreatIntelFeedService) List(opt *ListOptions) (ThreatIntelFeed, Response, error) {
 	client := &http.Client{}
-	requestpath, err := addOptions(defaultBaseURL + subscriptionsURLPath, opt)
+	requestpath, err := addOptions(defaultBaseURL+subscriptionsURLPath, opt)
 	if err != nil {
 		return ThreatIntelFeed{}, Response{}, err
 	}
@@ -129,6 +133,7 @@ func (c *OTXThreatIntelFeedService) List(opt *ListOptions) (ThreatIntelFeed, Res
 	if err != nil {
 		fmt.Println("error not nil on json unmarshall")
 		fmt.Println(err)
+		fmt.Println(string(contents))
 	}
 
 	return *pulse_list, resp, err
@@ -182,12 +187,12 @@ func (c *Client) Do(req *http.Request, v interface{}) (*Response, error) {
 	response := newResponse(resp)
 
 	// check response for error
-		err = CheckResponse(resp)
-		if err != nil {
-			// even though there was an error, we still return the response
-			// in case the caller wants to inspect it further
-			return response, err
-		}
+	err = CheckResponse(resp)
+	if err != nil {
+		// even though there was an error, we still return the response
+		// in case the caller wants to inspect it further
+		return response, err
+	}
 
 	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -255,7 +260,7 @@ func CheckResponse(r *http.Response) error {
 }
 
 type Error struct {
-	Message    string
+	Message string
 }
 
 func (e *Error) Error() string {
